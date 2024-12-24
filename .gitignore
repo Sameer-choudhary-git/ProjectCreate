@@ -1,0 +1,17 @@
+*.env
+# Node modules
+backend/node_modules/
+
+# Build files
+backend/build/
+backend/dist/
+
+ 
+# Node modules
+frontend/node_modules/
+
+# Build files
+frontend/build/
+frontend/dist/
+
+ 
