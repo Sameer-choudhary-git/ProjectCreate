@@ -1,1 +1,1 @@
-export const BE_URL = "https://projectcreate.onrender.com/";
+export const BE_URL = "https://projectcreate.onrender.com";
