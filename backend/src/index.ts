@@ -17,6 +17,11 @@ import cors from 'cors';
 
 
 app.use(cors());
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  next();
+});
 
 const apiKey: any = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
