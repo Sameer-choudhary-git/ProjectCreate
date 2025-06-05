@@ -15,15 +15,12 @@ export const PreviewFrame = ({webContainer, files}: PreviewFrameInterface) => {
  
       installProcess.output.pipeTo(new WritableStream({
         write(data) {
-          console.log(data);
         }
       }));
  
       await webContainer.spawn('npm', ['run', 'dev']);
  
       webContainer.on('server-ready', (port, url) => {
-        console.log(url)
-        console.log(port)
         setUrl(url);
       });
     }

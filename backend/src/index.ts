@@ -78,7 +78,6 @@ app.post("/chat", async (req, res) => {
   });
   const result = await model.generateContent({contents: [message]});
   const responseText = result.response.text();
-  console.log(result.response.text());
   res.json({ response: responseText });
 
 });

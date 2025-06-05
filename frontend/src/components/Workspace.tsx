@@ -22,7 +22,7 @@ export function Workspace({ prompt }: { prompt: string }) {
     const response = await axios.post(`${BE_URL}/template`, {
       prompt: prompt,
     });
-    const {prompts, uiPrompt } = response.data;    console.log("UI Prompt", uiPrompt);
+    const {prompts, uiPrompt } = response.data;
     setSteps(parseXml(uiPrompt));
 
     const prompt1 = response.data.prompt[0];
@@ -39,8 +39,6 @@ export function Workspace({ prompt }: { prompt: string }) {
       message: content,
     });
     
-    console.log("Response ;", response1.data.response);
-    console.log("parsed response ;;;  ", parseXml(response1.data.response));
     setSteps(parseXml(response1.data.response).map(x => ({
       ...x,
       status: "pending" as "pending"
@@ -143,8 +141,6 @@ export function Workspace({ prompt }: { prompt: string }) {
         }
       }))
     }
-    console.log(files);
-    console.log("steps ", steps);
   }, [steps, files]);
   
   useEffect(() => {
@@ -189,7 +185,6 @@ export function Workspace({ prompt }: { prompt: string }) {
   
     const mountStructure = createMountStructure(files);
     // Mount the structure if WebContainer is available
-    console.log(mountStructure);
     webContainer?.mount(mountStructure);
   }, [files, webContainer]);
 

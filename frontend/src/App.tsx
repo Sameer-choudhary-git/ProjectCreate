@@ -9,7 +9,6 @@ function App() {
 
   const handleGenerate = (idea: string) => {
     // In a real app, this would process the idea and generate project files
-    console.log('Processing project idea:', idea);
     setPrompt(idea);
     setShowWorkspace(true);
   };
