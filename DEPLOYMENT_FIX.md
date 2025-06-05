@@ -21,18 +21,23 @@
 
 ## How to Redeploy
 
-1. **Commit all changes:**
+1. **Important**: Make sure to deploy from the `frontend` directory in Vercel
+   - The `vercel.json` file is now located in the frontend folder
+   - Set your Vercel project root directory to `frontend`
+
+2. **Commit all changes:**
    ```bash
    git add .
    git commit -m "Fix: Add COOP/COEP headers and remove console logs"
    git push
    ```
 
-2. **Redeploy on Vercel:**
-   - Your Vercel deployment should automatically trigger
-   - Or manually redeploy from Vercel dashboard
+3. **Redeploy on Vercel:**
+   - Go to Vercel dashboard → Project Settings → General
+   - Set "Root Directory" to `frontend`
+   - Redeploy the project
 
-3. **Verify the fix:**
+4. **Verify the fix:**
    - Check that the WebContainer preview works without DataCloneError
    - Verify no API keys are visible in browser console
    - Test the application functionality
