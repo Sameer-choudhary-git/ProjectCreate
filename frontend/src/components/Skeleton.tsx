@@ -13,7 +13,7 @@ export function Skeleton({
 }: SkeletonProps) {
   return (
     <div
-      className={`${width} ${height} bg-gray-200 rounded animate-pulse ${className}`}
+      className={`${width} ${height} bg-[#21262d] rounded animate-pulse ${className}`}
     />
   );
 }
@@ -51,13 +51,13 @@ export function SkeletonFileTree() {
 
 export function SkeletonCodeEditor() {
   return (
-    <div className="space-y-3 p-6 font-mono">
+    <div className="space-y-3 p-6 font-mono bg-[#1e1e1e] h-full">
       {Array.from({ length: 15 }).map((_, i) => (
         <Skeleton
           key={i}
           height="h-4"
           width={`w-${Math.max(40, Math.floor(Math.random() * 90))}%`}
-          className="bg-gray-800/50"
+          className="bg-[#30363d]"
         />
       ))}
     </div>

@@ -6,6 +6,7 @@ import { GroqService } from "./services/groqService";
 import { createClient } from "@supabase/supabase-js";
 import { requestLogger } from "./middleware/logger";
 import { prisma } from "./lib/prisma";
+import archiver from "archiver";
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -70,7 +71,6 @@ app.post("/chat", async (req: Request, res: Response) => {
     const service = groqApiKey ? GroqService.createWithKey(groqApiKey) : groqService;
     const responseText = await service.getContent(message);
     
-    // Wrap in Artifact if missing
     let finalResponse = responseText;
     if (!responseText.includes("<boltArtifact")) {
       finalResponse = `<boltArtifact id="project" title="Project">${responseText}</boltArtifact>`;
@@ -93,7 +93,6 @@ app.post("/projects", async (req: Request, res: Response) => {
     if (token) {
       const user = await verifyUser(token);
       if (user) {
-        // Ensure user exists in Prisma
         const dbUser = await prisma.user.upsert({
           where: { email: user.email! },
           update: {},
@@ -165,6 +164,69 @@ app.get("/my-projects", async (req: Request, res: Response) => {
     res.json(projects);
   } catch (error) {
     res.status(500).json({ error: "Fetch failed" });
+  }
+});
+
+// 5. DOWNLOAD PROJECT AS ZIP (FIXED)
+app.get("/projects/:id/download", async (req: Request, res: Response) => {
+  try {
+    const project = await prisma.project.findUnique({
+      // @ts-ignore
+      where: { id: req.params.id }
+    });
+
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    // Initialize ZIP archive
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Maximum compression
+    });
+
+    // Set Headers
+    const safeTitle = (project.title || "project").replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeTitle}.zip"`);
+
+    // Pipe archive to response
+    archive.pipe(res);
+
+    // --- RECURSIVE FILE ADDER ---
+    // Handles the nested structure from your frontend (children array)
+    const addFilesToArchive = (items: any[]) => {
+      items.forEach((item) => {
+        if (item.type === 'file') {
+          // Add file to zip
+          // item.path is typically "src/App.tsx", so we use that as the name
+          archive.append(item.content || "", { name: item.path });
+        } else if (item.type === 'folder' && item.children) {
+          // Recurse into folders
+          addFilesToArchive(item.children);
+        }
+      });
+    };
+
+    // Parse files (Prisma stores JSON as any/object, so we cast it)
+    const filesArray = Array.isArray(project.files) ? project.files : [];
+    
+    if (filesArray.length > 0) {
+      addFilesToArchive(filesArray);
+    } else {
+      // Fallback if files are empty
+      archive.append("# No files found", { name: "README.md" });
+    }
+
+    // Finalize
+    await archive.finalize();
+
+  } catch (error) {
+    console.error("Download Error:", error);
+    // Only send error if headers haven't been sent
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Download failed" });
+    }
   }
 });
 

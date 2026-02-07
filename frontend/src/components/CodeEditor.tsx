@@ -6,96 +6,51 @@ interface CodeEditorProps {
   language: string;
 }
 
-// Syntax highlighting helper - FIXED VERSION
+// ULTRA-SIMPLE syntax highlighting that actually works
 const syntaxHighlight = (code: string, language: string): string => {
   const keywords: { [key: string]: string[] } = {
-    typescript: [
-      'import', 'export', 'const', 'let', 'var', 'function', 'class', 'interface',
-      'type', 'async', 'await', 'return', 'if', 'else', 'for', 'while', 'switch',
-      'case', 'default', 'break', 'continue', 'new', 'this', 'extends', 'implements',
-      'public', 'private', 'protected', 'readonly', 'static', 'abstract', 'from', 'as'
-    ],
-    javascript: [
-      'import', 'export', 'const', 'let', 'var', 'function', 'class', 'async', 'await',
-      'return', 'if', 'else', 'for', 'while', 'switch', 'case', 'default', 'break',
-      'continue', 'new', 'this', 'extends', 'super', 'from', 'as'
-    ],
-    jsx: [
-      'import', 'export', 'const', 'let', 'var', 'function', 'return', 'if', 'else',
-      'for', 'while', 'switch', 'case', 'default', 'from'
-    ],
-    tsx: [
-      'import', 'export', 'const', 'let', 'var', 'function', 'class', 'interface',
-      'type', 'async', 'await', 'return', 'if', 'else', 'for', 'while', 'switch',
-      'case', 'default', 'break', 'continue', 'new', 'this', 'from', 'as'
-    ],
-    css: ['body', 'color', 'background', 'padding', 'margin', 'font', 'width', 'height', 'border', 'display', 'flex'],
+    typescript: ['import', 'export', 'const', 'let', 'var', 'function', 'class', 'interface', 'type', 'async', 'await', 'return', 'if', 'else', 'for', 'while', 'switch', 'case', 'default', 'break', 'continue', 'new', 'this', 'extends', 'implements', 'public', 'private', 'protected', 'readonly', 'static', 'from', 'as'],
+    javascript: ['import', 'export', 'const', 'let', 'var', 'function', 'class', 'async', 'await', 'return', 'if', 'else', 'for', 'while', 'switch', 'case', 'default', 'break', 'continue', 'new', 'this', 'extends', 'from', 'as'],
+    jsx: ['import', 'export', 'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'from'],
+    tsx: ['import', 'export', 'const', 'let', 'var', 'function', 'class', 'interface', 'type', 'async', 'await', 'return', 'if', 'else', 'for', 'while', 'from', 'as'],
+    html: ['DOCTYPE', 'html', 'head', 'body', 'title', 'meta', 'link', 'script', 'style', 'div', 'span', 'p', 'a'],
+    css: [],
     json: []
   };
 
   const lang = language.toLowerCase();
   const langKeywords = keywords[lang] || [];
   
-  // Unique placeholder system
-  const PLACEHOLDER_PREFIX = '___HIGHLIGHT___';
-  let placeholderCounter = 0;
-  const placeholders: { [key: string]: string } = {};
-  
-  const createPlaceholder = (content: string): string => {
-    const placeholder = `${PLACEHOLDER_PREFIX}${placeholderCounter++}___`;
-    placeholders[placeholder] = content;
-    return placeholder;
-  };
-
-  let highlighted = code;
-
-  // 1. Protect and highlight strings FIRST (before escaping HTML)
-  highlighted = highlighted.replace(/(["'`])((?:\\.|(?!\1).)*?)\1/gs, (match, quote, content) => {
-    return createPlaceholder(`<span class="text-emerald-400">${quote}${content}${quote}</span>`);
-  });
-
-  // 2. Protect and highlight comments
-  highlighted = highlighted.replace(/\/\/(.*?)$/gm, (match, content) => {
-    return createPlaceholder(`<span class="text-gray-500 italic">//${content}</span>`);
-  });
-  highlighted = highlighted.replace(/\/\*([\s\S]*?)\*\//g, (match, content) => {
-    return createPlaceholder(`<span class="text-gray-500 italic">/*${content}*/</span>`);
-  });
-
-  // 3. NOW escape HTML entities
-  highlighted = highlighted
+  // Escape HTML first
+  let result = code
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
-  // 4. Highlight keywords
+  // 1. Highlight strings (must be first to protect content)
+  result = result.replace(/(["'`])((?:\\.|(?!\1).)*?)\1/g, '<span class="string">$&</span>');
+  
+  // 2. Highlight comments
+  result = result.replace(/\/\/(.*?)$/gm, '<span class="comment">$&</span>');
+  result = result.replace(/\/\*([\s\S]*?)\*\//g, '<span class="comment">$&</span>');
+  
+  // 3. Highlight HTML/JSX tags (only tag names)
+  result = result.replace(/(&lt;\/?)([a-zA-Z][a-zA-Z0-9:-]*)/g, '$1<span class="tag">$2</span>');
+  
+  // 4. Highlight keywords - BUT only outside of spans
   langKeywords.forEach(keyword => {
-    const regex = new RegExp(`\\b(${keyword})\\b`, 'g');
-    highlighted = highlighted.replace(regex, (match) => {
-      return createPlaceholder(`<span class="text-blue-400 font-bold">${match}</span>`);
+    // This regex matches keywords NOT inside existing span tags
+    const regex = new RegExp(`(?<!<[^>]*)\\b(${keyword})\\b(?![^<]*<\/span>)`, 'g');
+    result = result.replace(regex, (match) => {
+      // Double-check we're not inside a span already
+      return `<span class="keyword">${match}</span>`;
     });
   });
 
-  // 5. Highlight numbers
-  highlighted = highlighted.replace(/\b(\d+\.?\d*)\b/g, (match) => {
-    return createPlaceholder(`<span class="text-orange-400">${match}</span>`);
-  });
+  // 5. Highlight numbers (simple)
+  result = result.replace(/(?<!<[^>]*)\b(\d+\.?\d*)(?=\D|$)(?![^<]*<\/span>)/g, '<span class="number">$1</span>');
 
-  // 6. Highlight JSX/HTML tags (FIXED)
-  // We use [a-zA-Z] to ensure the tag starts with a letter. 
-  // This prevents the regex from matching "___HIGHLIGHT___" as a tag name.
-  highlighted = highlighted.replace(/(&lt;\/?)([a-zA-Z][\w:-]*)(.*?&gt;)/g, (match, open, tagName, rest) => {
-    return createPlaceholder(`${open}<span class="text-red-400">${tagName}</span>${rest}`);
-  });
-
-  // 7. Restore all placeholders (FIXED)
-  // We loop until no placeholders remain to handle nested cases safely.
-  // We use a callback function () => value to prevent '$' in code from breaking the replacement.
-  Object.keys(placeholders).forEach(placeholder => {
-    highlighted = highlighted.replace(new RegExp(placeholder, 'g'), () => placeholders[placeholder]);
-  });
-
-  return highlighted;
+  return result;
 };
 
 export function CodeEditor({ content, language }: CodeEditorProps) {
@@ -103,19 +58,23 @@ export function CodeEditor({ content, language }: CodeEditorProps) {
   const codeContainerRef = useRef<HTMLDivElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   
-  // Calculate lines for the gutter
-  const lineCount = useMemo(() => content.split('\n').length, [content]);
+  // Clean any artifacts
+  const cleanContent = useMemo(() => {
+    return content.replace(/___HIGHLIGHT___\d+___/g, '').replace(/\u0000\d+\u0000/g, '');
+  }, [content]);
   
-  // Memoize highlighted code
-  const highlightedCode = useMemo(() => syntaxHighlight(content, language), [content, language]);
+  const lineCount = useMemo(() => cleanContent.split('\n').length, [cleanContent]);
+  
+  const highlightedCode = useMemo(() => {
+    return syntaxHighlight(cleanContent, language);
+  }, [cleanContent, language]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(content);
+    navigator.clipboard.writeText(cleanContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Synchronize scrolling
   useEffect(() => {
     const codeContainer = codeContainerRef.current;
     const lineNumbers = lineNumbersRef.current;
@@ -133,7 +92,15 @@ export function CodeEditor({ content, language }: CodeEditorProps) {
   return (
     <div className="h-full flex flex-col bg-[#1e1e1e] text-gray-300 font-mono text-sm overflow-hidden rounded-b-lg">
       
-      {/* Header / Toolbar */}
+      <style>{`
+        .string { color: #98c379; }
+        .comment { color: #5c6370; font-style: italic; }
+        .keyword { color: #c678dd; font-weight: 600; }
+        .tag { color: #e06c75; }
+        .number { color: #d19a66; }
+      `}</style>
+
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-gray-800 shrink-0 select-none">
         <div className="flex items-center gap-3">
           <div className="flex gap-1.5">
@@ -156,7 +123,7 @@ export function CodeEditor({ content, language }: CodeEditorProps) {
       {/* Editor Body */}
       <div className="flex-1 flex overflow-hidden relative group">
         
-        {/* Line Numbers (Gutter) */}
+        {/* Line Numbers */}
         <div
           ref={lineNumbersRef}
           className="bg-[#1e1e1e] border-r border-gray-800 text-gray-600 text-right py-4 px-3 select-none overflow-hidden shrink-0 w-[3.5rem]"
@@ -181,7 +148,7 @@ export function CodeEditor({ content, language }: CodeEditorProps) {
         </div>
       </div>
 
-      {/* Footer / Status Bar */}
+      {/* Footer */}
       <div className="bg-[#007acc] text-white text-[10px] px-3 py-1 flex justify-between shrink-0 select-none">
         <span>Ln {lineCount}, Col 1</span>
         <span>UTF-8</span>

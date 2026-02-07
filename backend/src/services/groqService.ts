@@ -19,7 +19,7 @@ export class GroqService {
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey;
-    this.groq = new Groq({ apiKey: apiKey || undefined });
+    this.groq = new Groq({ apiKey: apiKey || undefined ,timeout:300000});
     console.log("✓ GroqService initialized" + (apiKey ? " with custom API key" : ""));
   }
 
@@ -107,9 +107,9 @@ export class GroqService {
       const chatCompletion = await this.groq.chat.completions.create({
         messages,
         model: "openai/gpt-oss-120b",
-        temperature: 1.3,
+        temperature: 0.5,
         max_completion_tokens: 65536,
-        top_p: 0.95,
+        top_p: 0.9,
         stream: false,
         reasoning_effort: "high",
       });

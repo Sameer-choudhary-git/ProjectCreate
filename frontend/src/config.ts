@@ -1,1 +1,1 @@
-export const BE_URL = "https://projectcreate-zegq.onrender.com";
+export const BE_URL = "http://localhost:8080";

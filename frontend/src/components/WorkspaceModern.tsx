@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom"; // Added useSearchParams
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { Sidebar } from "./Sidebar";
 import { CodeEditor } from "./CodeEditor";
@@ -7,17 +7,22 @@ import { FileContent, Step, StepType, FileItem } from "../types/files";
 import { BE_URL } from "../config";
 import { parseXml } from "../steps";
 import { LoadingModal } from "./LoadingModal";
-import { ProgressBar } from "./ProgressBar";
 import { WebContainer } from "@webcontainer/api";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "xterm/css/xterm.css";
-import { PreviewFrame } from "./PreviewFrame";
 import { supabase } from "../lib/supabase";
+import { PreviewFrame } from "./PreviewFrame";
 import {
-  Code2, Eye, Loader2, Zap, Terminal as TerminalIcon, Layout, Save, Cloud, AlertTriangle, ArrowLeft
+  Loader2,
+  Zap,
+  Save,
+  AlertTriangle,
+  ArrowLeft,
+  Download,
+  Layout
 } from "lucide-react";
-import { generateInitialPrompt, CODE_OUTPUT_INSTRUCTION } from "../utils/prompts";
+import { generateInitialPrompt } from "../utils/prompts";
 
 export function Workspace() {
   const { projectId } = useParams();
@@ -25,7 +30,6 @@ export function Workspace() {
   const navigate = useNavigate();
 
   // --- STATE ---
-  // Priority: 1. URL Param, 2. Empty String
   const [prompt, setPrompt] = useState(searchParams.get("prompt") || "");
   const [steps, setSteps] = useState<Step[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileContent | null>(null);
@@ -91,7 +95,6 @@ export function Workspace() {
             await generateProject(prompt);
         } 
         else {
-            // NO DATA
             throw new Error("No prompt or project ID found. Go back home and try again.");
         }
 
@@ -105,15 +108,14 @@ export function Workspace() {
     };
 
     runInitialization();
-  }, [projectId, prompt]); // Re-run if ID or URL prompt changes
+  }, [projectId, prompt]);
 
   // --- GENERATION LOGIC ---
   const generateProject = async (userPrompt: string) => {
     const groqApiKey = localStorage.getItem("groq_api_key");
 
-    // Check if user has provided a Groq API key
     if (!groqApiKey) {
-      setError("Please add your Groq API key first. Click the 'API Key' button in the header to get started.");
+      setError("Please add your Groq API key first.");
       return;
     }
 
@@ -122,7 +124,6 @@ export function Workspace() {
 
     try {
       const resTemplate = await axios.post(`${BE_URL}/template`, { prompt: userPrompt, groqApiKey });
-      console.log("✅ [TEMPLATE] Received template", resTemplate.data);
       setLoadingProgress(30);
       
       setLoadingStage("generating");
@@ -145,7 +146,53 @@ export function Workspace() {
       setLoadingProgress(100);
     } catch (err: any) {
       console.error("Generation error:", err);
-      setError(err.response?.data?.error || "Generation failed. Please check your API key and try again.");
+      setError(err.response?.data?.error || "Generation failed.");
+    }
+  };
+
+  // --- FOLLOW UP HANDLER ---
+  const handleFollowUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!followUpPrompt.trim() || isSubmitting) return;
+
+    const groqApiKey = localStorage.getItem("groq_api_key");
+    if (!groqApiKey) {
+      alert("Please verify your API key.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    // 1. Optimistic UI
+    const userMessage = { role: "user", parts: [{ text: followUpPrompt }] };
+    const newHistory = [...llmMessages, userMessage];
+    setLlmMessages(newHistory);
+    setFollowUpPrompt(""); 
+
+    try {
+      // 2. Send to Chat
+      const resChat = await axios.post(`${BE_URL}/chat`, {
+        message: { role: "user", parts: newHistory.flatMap(m => m.parts) },
+        groqApiKey
+      });
+
+      const responseText = resChat.data.response;
+      
+      // 3. Parse NEW steps
+      const newSteps = parseXml(responseText).map(x => ({
+        ...x,
+        status: "pending" as const 
+      }));
+
+      // 4. Update State (Triggers useEffect)
+      setSteps(prev => [...prev, ...newSteps]);
+      setLlmMessages(prev => [...prev, { role: "assistant", parts: [{ text: responseText }] }]);
+      
+    } catch (err) {
+      console.error("Follow-up failed:", err);
+      alert("Failed to process follow-up");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -175,7 +222,33 @@ export function Workspace() {
     }
   };
 
-  // --- FILES ---
+  // --- DOWNLOAD ---
+  const handleDownload = async () => {
+    if (!projectId) {
+      alert("Please save your project first before downloading");
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${BE_URL}/projects/${projectId}/download`, {
+        responseType: "blob"
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `project_${projectId}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Download failed");
+      console.error(e);
+    }
+  };
+
+  // --- FILES EFFECT (UPDATER) ---
   useEffect(() => {
     let originalFiles = [...files];
     let updateHappened = false;
@@ -213,7 +286,7 @@ export function Workspace() {
     }
   }, [steps]);
 
-  // --- MOUNT ---
+  // --- MOUNT EFFECT ---
   useEffect(() => {
     if(!webcontainer || files.length === 0) return;
     const mountFiles = async () => {
@@ -233,7 +306,7 @@ export function Workspace() {
     mountFiles();
   }, [files, webcontainer]);
 
-  // --- TERMINAL ---
+  // --- TERMINAL EFFECT ---
   useEffect(() => {
     if (!webcontainer || !terminalRef.current || xtermRef.current) return;
     const term = new Terminal({ convertEol: true, theme: { background: "#1e1e1e" } });
@@ -267,56 +340,127 @@ export function Workspace() {
     setSelectedFile(find(files));
   };
 
+  // LOADING STATE
   if (isLoading) {
     return (
-        <div className="h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#0d1117] text-white gap-4">
             {error ? (
-                <div className="text-center">
-                    <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-2" />
-                    <p className="text-red-600 font-medium">{error}</p>
-                    <button onClick={() => navigate('/')} className="mt-4 bg-gray-800 text-white px-4 py-2 rounded">Go Back</button>
+                <div className="text-center max-w-md p-6 bg-[#161b22] border border-red-500/30 rounded-xl shadow-2xl">
+                    <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                    <p className="text-red-400 font-medium mb-4">{error}</p>
+                    <button onClick={() => navigate('/')} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-all">Go Back</button>
                 </div>
             ) : (
                 <>
                     <LoadingModal stage={loadingStage} progress={loadingProgress} />
-                    <p className="text-gray-500 animate-pulse">Building your vision...</p>
+                    <p className="text-gray-400 animate-pulse text-sm mt-4">Building your vision...</p>
                 </>
             )}
         </div>
     );
   }
 
+  // MAIN LAYOUT
   return (
-    <div className="flex flex-col h-screen bg-[#FAFAFA]">
-      <header className="flex items-center justify-between px-4 h-16 bg-white border-b border-gray-200">
-        <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/')}><ArrowLeft className="w-5 h-5 text-gray-500" /></button>
-            <h1 className="font-bold">Bolt Workspace</h1>
+    <div className="flex flex-col h-screen w-screen bg-[#0d1117] overflow-hidden text-gray-300 font-sans">
+      
+      {/* HEADER */}
+      <header className="flex items-center justify-between px-4 h-14 bg-[#161b22] border-b border-[#30363d] shrink-0 z-10">
+        <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/')} className="hover:bg-[#21262d] p-1.5 rounded-md transition-colors">
+                <ArrowLeft className="w-5 h-5 text-gray-400" />
+            </button>
+            <h1 className="font-semibold text-white tracking-tight text-sm">Bolt Workspace</h1>
+            {prompt && <span className="text-xs text-gray-500 truncate max-w-[200px] border-l border-gray-700 pl-4">{prompt}</span>}
         </div>
-        <div className="flex gap-4">
-            <div className="flex bg-gray-100 p-1 rounded-lg">
+        
+        <div className="flex items-center gap-3">
+            <div className="flex bg-[#21262d] p-0.5 rounded-lg border border-[#30363d]">
                 {(["code", "preview", "terminal"] as const).map(tab => (
                     <button key={tab} onClick={() => setActiveTab(tab)} 
-                        className={`px-4 py-1.5 rounded-md text-sm capitalize ${activeTab === tab ? "bg-white shadow-sm" : ""}`}>
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all ${
+                            activeTab === tab 
+                            ? "bg-[#30363d] text-white shadow-sm" 
+                            : "text-gray-400 hover:text-white hover:bg-[#30363d]/50"
+                        }`}>
                         {tab}
                     </button>
                 ))}
             </div>
-            <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+
+            <div className="h-4 w-px bg-[#30363d] mx-1" />
+
+            <button onClick={handleSave} disabled={isSaving} 
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-medium rounded-md transition-all disabled:opacity-50 disabled:grayscale">
+                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                 Save
+            </button>
+            <button onClick={handleDownload} disabled={!projectId} 
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#1f6feb] hover:bg-[#388bfd] text-white text-xs font-medium rounded-md transition-all disabled:opacity-50 disabled:grayscale">
+                <Download className="w-3.5 h-3.5" />
+                Export
             </button>
         </div>
       </header>
 
+      {/* CONTENT AREA */}
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-80 border-r bg-gray-50 flex flex-col">
-            <Sidebar steps={steps} files={files} onFileSelect={handleFileSelect} />
+        
+        {/* LEFT SIDEBAR (Explorer + Chat) */}
+        <aside className="w-80 border-r border-[#30363d] bg-[#0d1117] flex flex-col justify-between shrink-0 h-full">
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent p-2">
+                <Sidebar steps={steps} files={files} onFileSelect={handleFileSelect} />
+            </div>
+            
+            {/* Chat Input */}
+            <div className="p-3 border-t border-[#30363d] bg-[#161b22]">
+                <form onSubmit={handleFollowUpSubmit} className="flex flex-col gap-2 relative">
+                    <textarea
+                        value={followUpPrompt}
+                        onChange={(e) => setFollowUpPrompt(e.target.value)}
+                        placeholder="Ask AI to edit..."
+                        className="w-full p-3 pr-10 text-xs bg-[#0d1117] border border-[#30363d] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff] resize-none scrollbar-none"
+                        rows={2}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleFollowUpSubmit(e);
+                            }
+                        }}
+                    />
+                    <button 
+                        type="submit" 
+                        disabled={isSubmitting || !followUpPrompt.trim()}
+                        className="absolute bottom-3 right-3 p-1.5 bg-[#238636] text-white rounded-md hover:bg-[#2ea043] disabled:opacity-0 transition-all"
+                    >
+                        {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                    </button>
+                </form>
+            </div>
         </aside>
-        <main className="flex-1 bg-white relative">
-            {activeTab === 'code' && (selectedFile ? <CodeEditor content={selectedFile.content} language={selectedFile.language} /> : <div className="h-full flex items-center justify-center text-gray-400">Select a file</div>)}
-            {activeTab === 'preview' && <PreviewFrame webContainer={webcontainer} files={files} />}
-            <div className={`h-full bg-[#1e1e1e] ${activeTab === 'terminal' ? 'block' : 'hidden'}`} ref={terminalRef} />
+
+        {/* RIGHT MAIN AREA */}
+        <main className="flex-1 bg-[#1e1e1e] relative flex flex-col min-w-0 overflow-hidden">
+            {activeTab === 'code' && (
+                selectedFile ? (
+                    <CodeEditor content={selectedFile.content} language={selectedFile.language} />
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-500 gap-4">
+                        <Layout className="w-16 h-16 opacity-20" />
+                        <p className="text-sm font-medium">Select a file from the sidebar to view code</p>
+                    </div>
+                )
+            )}
+            
+            {activeTab === 'preview' && (
+                <div className="h-full w-full bg-white">
+                    <PreviewFrame webContainer={webcontainer} files={files} />
+                </div>
+            )}
+            
+            <div className={`h-full w-full bg-[#1e1e1e] border-t border-[#30363d] ${activeTab === 'terminal' ? 'block' : 'hidden'}`}>
+                 <div ref={terminalRef} className="h-full w-full" />
+            </div>
         </main>
       </div>
     </div>
