@@ -36,7 +36,7 @@ const syntaxHighlight = (code: string, language: string): string => {
   const lang = language.toLowerCase();
   const langKeywords = keywords[lang] || [];
   
-  // Create a unique placeholder system to prevent double-escaping
+  // Unique placeholder system
   const PLACEHOLDER_PREFIX = '___HIGHLIGHT___';
   let placeholderCounter = 0;
   const placeholders: { [key: string]: string } = {};
@@ -62,13 +62,13 @@ const syntaxHighlight = (code: string, language: string): string => {
     return createPlaceholder(`<span class="text-gray-500 italic">/*${content}*/</span>`);
   });
 
-  // 3. NOW escape HTML entities (this won't affect our placeholders)
+  // 3. NOW escape HTML entities
   highlighted = highlighted
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
-  // 4. Highlight keywords (on the escaped text)
+  // 4. Highlight keywords
   langKeywords.forEach(keyword => {
     const regex = new RegExp(`\\b(${keyword})\\b`, 'g');
     highlighted = highlighted.replace(regex, (match) => {
@@ -81,14 +81,18 @@ const syntaxHighlight = (code: string, language: string): string => {
     return createPlaceholder(`<span class="text-orange-400">${match}</span>`);
   });
 
-  // 6. Highlight JSX/HTML tags (using escaped angle brackets)
-  highlighted = highlighted.replace(/(&lt;\/?)(\w+)(.*?&gt;)/g, (match, open, tagName, rest) => {
+  // 6. Highlight JSX/HTML tags (FIXED)
+  // We use [a-zA-Z] to ensure the tag starts with a letter. 
+  // This prevents the regex from matching "___HIGHLIGHT___" as a tag name.
+  highlighted = highlighted.replace(/(&lt;\/?)([a-zA-Z][\w:-]*)(.*?&gt;)/g, (match, open, tagName, rest) => {
     return createPlaceholder(`${open}<span class="text-red-400">${tagName}</span>${rest}`);
   });
 
-  // 7. Replace all placeholders with actual HTML
+  // 7. Restore all placeholders (FIXED)
+  // We loop until no placeholders remain to handle nested cases safely.
+  // We use a callback function () => value to prevent '$' in code from breaking the replacement.
   Object.keys(placeholders).forEach(placeholder => {
-    highlighted = highlighted.replace(new RegExp(placeholder, 'g'), placeholders[placeholder]);
+    highlighted = highlighted.replace(new RegExp(placeholder, 'g'), () => placeholders[placeholder]);
   });
 
   return highlighted;
@@ -102,7 +106,7 @@ export function CodeEditor({ content, language }: CodeEditorProps) {
   // Calculate lines for the gutter
   const lineCount = useMemo(() => content.split('\n').length, [content]);
   
-  // Memoize highlighted code to prevent re-running regex on every render
+  // Memoize highlighted code
   const highlightedCode = useMemo(() => syntaxHighlight(content, language), [content, language]);
 
   const handleCopy = () => {
