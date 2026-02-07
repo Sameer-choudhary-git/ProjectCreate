@@ -1,0 +1,34 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon dist/src/index.js",
+    "build": "tsc -b --force",
+    "start": "node dist/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "ProjectCreate Backend - AI-powered code generation engine",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@google/genai": "^1.38.0",
+    "@prisma/adapter-pg": "^7.3.0",
+    "@prisma/client": "^7.3.0",
+    "@supabase/supabase-js": "^2.95.3",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.1",
+    "groq-sdk": "^0.37.0",
+    "pg": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/pg": "^8.16.0",
+    "nodemon": "^3.1.11",
+    "prisma": "^7.3.0",
+    "typescript": "^5.5.3"
+  }
+}
