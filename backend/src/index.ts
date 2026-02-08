@@ -13,7 +13,6 @@ const port = process.env.PORT || 8080;
 
 // --- CONFIG: Allowed Origins ---
 const allowedOrigins = [
-  "http://localhost:5173",
   "https://project-create-updated-18vauinku-sameers-projects-3ce6a679.vercel.app",
   "https://project-create-updated.vercel.app"
 ];
