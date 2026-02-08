@@ -22,7 +22,7 @@ import {
   Download,
   Layout
 } from "lucide-react";
-import { generateInitialPrompt } from "../utils/prompts";
+import { generateInitialPrompt, MODIFICATION_PROMPT } from "../utils/prompts";
 
 export function Workspace() {
   const { projectId } = useParams();
@@ -30,19 +30,20 @@ export function Workspace() {
   const navigate = useNavigate();
 
   // --- STATE ---
-  // ✅ FIX: Read prompt from URL, not props
   const [prompt, setPrompt] = useState(searchParams.get("prompt") || "");
   const [steps, setSteps] = useState<Step[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileContent | null>(null);
   const [activeTab, setActiveTab] = useState<"code" | "preview" | "terminal">("code");
   const [followUpPrompt, setFollowUpPrompt] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [llmMessages, setLlmMessages] = useState<any[]>([]);
   
-  const [error, setError] = useState<string | null>(null);
+  // Loading States
+  const [isSubmitting, setIsSubmitting] = useState(false); 
+  const [isLoading, setIsLoading] = useState(true);        
   const [loadingStage, setLoadingStage] = useState<"initializing" | "analyzing" | "generating" | "mounting" | "complete">("initializing");
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [llmMessages, setLlmMessages] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const [files, setFiles] = useState<FileItem[]>([]);
   const [webcontainer, setWebcontainer] = useState<WebContainer | null>(null);
@@ -111,7 +112,7 @@ export function Workspace() {
     runInitialization();
   }, [projectId, prompt]);
 
-  // --- GENERATION LOGIC ---
+  // --- GENERATION LOGIC (Initial) ---
   const generateProject = async (userPrompt: string) => {
     const groqApiKey = localStorage.getItem("groq_api_key");
 
@@ -151,7 +152,7 @@ export function Workspace() {
     }
   };
 
-  // --- FOLLOW UP HANDLER ---
+  // --- FOLLOW UP HANDLER (Smart & Clean) ---
   const handleFollowUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!followUpPrompt.trim() || isSubmitting) return;
@@ -162,42 +163,72 @@ export function Workspace() {
       return;
     }
 
+    // 1. ACTIVATE OVERLAY (Feedback)
     setIsSubmitting(true);
-    
-    // 1. Optimistic UI
-    const userMessage = { role: "user", parts: [{ text: followUpPrompt }] };
-    const newHistory = [...llmMessages, userMessage];
-    setLlmMessages(newHistory);
+    setLoadingStage("analyzing");
+    setLoadingProgress(0);
+
+    const userOriginalText = followUpPrompt;
     setFollowUpPrompt(""); 
 
+    // 2. Add Temp Step (Visual cue in background)
+    const tempStepId = Date.now(); 
+    setSteps(prev => [
+      ...prev, 
+      {
+        id: tempStepId,
+        title: "Analyzing Request...",
+        description: userOriginalText,
+        type: StepType.RunScript,
+        status: "in-progress"
+      }
+    ]);
+    
+    // 3. Prepare Context
+    const fullPrompt = `${MODIFICATION_PROMPT}\n\nUser Request: ${userOriginalText}`;
+    const userMessage = { role: "user", parts: [{ text: fullPrompt }] };
+    const newHistory = [...llmMessages, userMessage];
+    setLlmMessages(newHistory);
+
     try {
-      // 2. Send to Chat
+      setLoadingProgress(30);
+      setLoadingStage("generating");
+
       const resChat = await axios.post(`${BE_URL}/chat`, {
         message: { role: "user", parts: newHistory.flatMap(m => m.parts) },
         groqApiKey
       });
 
+      setLoadingProgress(70);
+      setLoadingStage("mounting");
+
       const responseText = resChat.data.response;
       
-      // 3. Parse NEW steps
+      // 4. Parse Response
       const newSteps = parseXml(responseText).map(x => ({
         ...x,
         status: "pending" as const 
       }));
 
-      // 4. Update State (Triggers useEffect)
-      setSteps(prev => [...prev, ...newSteps]);
+      // 5. UPDATE STEPS (COMPLETE REPLACEMENT)
+      // This wipes old steps and shows ONLY what is changing now.
+      setSteps(newSteps);
+      
       setLlmMessages(prev => [...prev, { role: "assistant", parts: [{ text: responseText }] }]);
+      setLoadingProgress(100);
       
     } catch (err) {
       console.error("Follow-up failed:", err);
       alert("Failed to process follow-up");
+      // If fail, revert to removing only the temp step
+      setSteps(prev => prev.filter(s => s.id !== tempStepId));
     } finally {
       setIsSubmitting(false);
+      setLoadingStage("complete");
     }
   };
 
-  // --- SAVE ---
+  // --- SAVE (Smart Update) ---
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -212,9 +243,14 @@ export function Workspace() {
             llmHistory: llmMessages
         };
 
-        const res = await axios.post(`${BE_URL}/projects`, payload, { headers });
-        if (!projectId) navigate(`/workspace/${res.data.id}`, { replace: true });
-        alert("Saved!");
+        if (projectId) {
+            await axios.put(`${BE_URL}/projects/${projectId}`, payload, { headers });
+            alert("Project updated successfully!");
+        } else {
+            const res = await axios.post(`${BE_URL}/projects`, payload, { headers });
+            navigate(`/workspace/${res.data.id}`, { replace: true });
+            alert("Project saved!");
+        }
     } catch (e) {
         alert("Save failed");
         console.error(e);
@@ -341,7 +377,7 @@ export function Workspace() {
     setSelectedFile(find(files));
   };
 
-  // LOADING STATE
+  // 1. INITIAL LOADING STATE
   if (isLoading) {
     return (
         <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#0d1117] text-white gap-4">
@@ -361,10 +397,17 @@ export function Workspace() {
     );
   }
 
-  // MAIN LAYOUT
+  // 2. MAIN WORKSPACE
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#0d1117] overflow-hidden text-gray-300 font-sans">
+    <div className="flex flex-col h-screen w-screen bg-[#0d1117] overflow-hidden text-gray-300 font-sans relative">
       
+      {/* 3. FOLLOW-UP LOADING OVERLAY */}
+      {isSubmitting && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all">
+           <LoadingModal stage={loadingStage} progress={loadingProgress} />
+        </div>
+      )}
+
       {/* HEADER */}
       <header className="flex items-center justify-between px-4 h-14 bg-[#161b22] border-b border-[#30363d] shrink-0 z-10">
         <div className="flex items-center gap-4">
@@ -394,7 +437,7 @@ export function Workspace() {
             <button onClick={handleSave} disabled={isSaving} 
                 className="flex items-center gap-2 px-3 py-1.5 bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-medium rounded-md transition-all disabled:opacity-50 disabled:grayscale">
                 {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                Save
+                {projectId ? "Update" : "Save"}
             </button>
             <button onClick={handleDownload} disabled={!projectId} 
                 className="flex items-center gap-2 px-3 py-1.5 bg-[#1f6feb] hover:bg-[#388bfd] text-white text-xs font-medium rounded-md transition-all disabled:opacity-50 disabled:grayscale">
