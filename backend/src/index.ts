@@ -1,4 +1,4 @@
-import { CODE_OUTPUT_INSTRUCTION, VITE_PROMPT } from "./prompts";
+import { VITE_PROMPT } from "./prompts";
 import "dotenv/config";
 import express, { Request, Response } from "express";
 import cors from "cors";
@@ -82,7 +82,7 @@ app.post("/chat", async (req: Request, res: Response) => {
   }
 });
 
-// 2. SAVE PROJECT
+// 2. SAVE PROJECT (Create)
 app.post("/projects", async (req: Request, res: Response) => {
   try {
     const { prompt, files, steps, llmHistory, title } = req.body;
@@ -118,6 +118,33 @@ app.post("/projects", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to save project" });
   }
 });
+
+// 2.5 UPDATE PROJECT (Overwrite)
+app.put("/projects/:id", async (req: Request, res: Response) => {
+    try {
+      const { prompt, files, steps, llmHistory, title } = req.body;
+      const { id } = req.params;
+  
+      // Optional: Add ownership validation here if needed
+  
+      const updatedProject = await prisma.project.update({
+        // @ts-ignore
+        where: { id },
+        data: {
+          title: title || prompt.substring(0, 30) + "...",
+          prompt,
+          files,
+          steps,
+          llmHistory
+        }
+      });
+  
+      res.json({ success: true, id: updatedProject.id });
+    } catch (error) {
+      console.error("Update Error:", error);
+      res.status(500).json({ error: "Failed to update project" });
+    }
+  });
 
 // 3. GET PROJECT (Load)
 app.get("/projects/:id", async (req: Request, res: Response) => {
@@ -166,7 +193,7 @@ app.get("/my-projects", async (req: Request, res: Response) => {
   }
 });
 
-// 5. DOWNLOAD PROJECT AS ZIP (FIXED)
+// 5. DOWNLOAD PROJECT AS ZIP
 app.get("/projects/:id/download", async (req: Request, res: Response) => {
   try {
     const project = await prisma.project.findUnique({
@@ -179,50 +206,38 @@ app.get("/projects/:id/download", async (req: Request, res: Response) => {
       return;
     }
 
-    // Initialize ZIP archive
     const archive = archiver('zip', {
-      zlib: { level: 9 } // Maximum compression
+      zlib: { level: 9 }
     });
 
-    // Set Headers
     const safeTitle = (project.title || "project").replace(/[^a-z0-9]/gi, '_').toLowerCase();
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${safeTitle}.zip"`);
 
-    // Pipe archive to response
     archive.pipe(res);
 
-    // --- RECURSIVE FILE ADDER ---
-    // Handles the nested structure from your frontend (children array)
     const addFilesToArchive = (items: any[]) => {
       items.forEach((item) => {
         if (item.type === 'file') {
-          // Add file to zip
-          // item.path is typically "src/App.tsx", so we use that as the name
           archive.append(item.content || "", { name: item.path });
         } else if (item.type === 'folder' && item.children) {
-          // Recurse into folders
           addFilesToArchive(item.children);
         }
       });
     };
 
-    // Parse files (Prisma stores JSON as any/object, so we cast it)
     const filesArray = Array.isArray(project.files) ? project.files : [];
     
     if (filesArray.length > 0) {
       addFilesToArchive(filesArray);
     } else {
-      // Fallback if files are empty
       archive.append("# No files found", { name: "README.md" });
     }
 
-    // Finalize
     await archive.finalize();
 
   } catch (error) {
     console.error("Download Error:", error);
-    // Only send error if headers haven't been sent
     if (!res.headersSent) {
       res.status(500).json({ error: "Download failed" });
     }
