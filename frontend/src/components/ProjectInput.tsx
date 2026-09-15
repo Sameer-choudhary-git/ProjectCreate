@@ -58,7 +58,7 @@ export function ProjectInput({ onGenerate, prompt = "" }: ProjectInputProps) {
         
         {/* Main Content */}
         <div className="text-center mb-16 space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#161b22] border border-[#30363d] shadow-sm mb-4 animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#161b22] shadow-sm mb-4 animate-fade-in-up">
             <Sparkles className="w-4 h-4 text-[#e3b341]" />
             <span className="text-sm font-medium text-[#c9d1d9]">AI-Powered Project Generator</span>
           </div>
@@ -77,7 +77,7 @@ export function ProjectInput({ onGenerate, prompt = "" }: ProjectInputProps) {
 
         {/* Input Section */}
         <form onSubmit={handleSubmit} className="mb-16 relative max-w-3xl mx-auto">
-          <div className="group relative bg-[#161b22] rounded-2xl shadow-2xl transition-all duration-300 border border-[#30363d] focus-within:border-[#58a6ff] focus-within:ring-4 focus-within:ring-[#58a6ff]/10 p-2">
+          <div className="group relative bg-[#161b22] rounded-2xl shadow-2xl transition-all duration-300 focus-within:ring-4 focus-within:ring-[#58a6ff]/10 p-2">
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1 flex items-center px-4">
                 <Terminal className="w-6 h-6 text-[#8b949e] mr-3" />
@@ -92,11 +92,11 @@ export function ProjectInput({ onGenerate, prompt = "" }: ProjectInputProps) {
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="px-8 py-4 bg-[#238636] hover:bg-[#2ea043] text-white font-bold text-lg rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 min-w-[180px] shadow-lg shadow-[#238636]/20 border border-[rgba(240,246,252,0.1)]"
+                className="px-8 py-4 bg-[#238636] hover:bg-[#2ea043] text-white font-bold text-lg rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 min-w-[180px] shadow-lg shadow-[#238636]/20"
               >
                 {isLoading ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                    <div className="animate-spin rounded-full h-5 w-5" />
                     <span>Working...</span>
                   </>
                 ) : (
@@ -130,9 +130,9 @@ export function ProjectInput({ onGenerate, prompt = "" }: ProjectInputProps) {
                 <button
                   key={index}
                   onClick={() => setInput(project.prompt)}
-                  className="group relative flex flex-col items-start text-left bg-[#161b22] p-6 rounded-2xl border border-[#30363d] shadow-sm hover:shadow-xl hover:border-[#58a6ff]/50 transition-all duration-300 hover:-translate-y-1"
+                  className="group relative flex flex-col items-start text-left bg-[#161b22] p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                 >
-                  <div className="p-3 bg-[#0d1117] rounded-xl mb-4 border border-[#30363d] group-hover:border-[#58a6ff]/30 group-hover:text-[#58a6ff] transition-colors">
+                  <div className="p-3 bg-[#0d1117] rounded-xl mb-4 group-hover:text-[#58a6ff] transition-colors">
                     <Icon className="w-6 h-6 text-[#8b949e] group-hover:text-[#58a6ff]" />
                   </div>
                   

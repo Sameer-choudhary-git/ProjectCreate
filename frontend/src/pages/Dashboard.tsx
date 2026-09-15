@@ -68,7 +68,7 @@ export function Dashboard() {
       <div className="max-w-6xl mx-auto space-y-8">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#30363d] pb-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6">
           <div>
             <h1 className="text-3xl font-bold text-[#c9d1d9] tracking-tight">My Projects</h1>
             <p className="text-[#8b949e] mt-2 text-sm">
@@ -77,7 +77,7 @@ export function Dashboard() {
           </div>
           <button 
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-4 py-2 bg-[#238636] hover:bg-[#2ea043] text-white rounded-md font-medium transition-all shadow-sm border border-[rgba(240,246,252,0.1)] text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-[#238636] hover:bg-[#2ea043] text-white rounded-md font-medium transition-all shadow-sm text-sm"
           >
             <Plus className="w-4 h-4" />
             New Project
@@ -87,8 +87,8 @@ export function Dashboard() {
         {/* Projects Grid */}
         {projects.length === 0 ? (
           // Empty State
-          <div className="bg-[#161b22] rounded-xl border border-[#30363d] p-12 text-center shadow-sm">
-            <div className="w-16 h-16 bg-[#1f6feb]/10 text-[#58a6ff] rounded-full flex items-center justify-center mx-auto mb-6 border border-[#1f6feb]/20">
+          <div className="bg-[#161b22] rounded-xl p-12 text-center shadow-sm">
+            <div className="w-16 h-16 bg-[#1f6feb]/10 text-[#58a6ff] rounded-full flex items-center justify-center mx-auto mb-6">
               <Layout className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-bold text-[#c9d1d9] mb-2">No projects yet</h3>
@@ -108,13 +108,13 @@ export function Dashboard() {
               <div 
                 key={project.id}
                 onClick={() => navigate(`/workspace/${project.id}`)}
-                className="group bg-[#161b22] p-6 rounded-xl border border-[#30363d] hover:border-[#58a6ff] hover:shadow-xl hover:shadow-[#58a6ff]/5 transition-all cursor-pointer flex flex-col h-64 relative overflow-hidden"
+                className="group bg-[#161b22] p-6 rounded-xl hover:shadow-xl hover:shadow-[#58a6ff]/5 transition-all cursor-pointer flex flex-col h-64 relative overflow-hidden"
               >
                 {/* Decorative top gradient */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#1f6feb] to-[#238636] opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <div className="flex justify-between items-start mb-4">
-                  <div className="p-3 bg-[#0d1117] rounded-lg text-[#8b949e] border border-[#30363d] group-hover:text-[#58a6ff] group-hover:border-[#58a6ff]/30 transition-colors">
+                  <div className="p-3 bg-[#0d1117] rounded-lg text-[#8b949e] group-hover:text-[#58a6ff] transition-colors">
                     <Terminal className="w-6 h-6" />
                   </div>
                   <div className="p-2 rounded-full hover:bg-[#30363d] transition-colors -mr-2 -mt-2">
@@ -130,7 +130,7 @@ export function Dashboard() {
                   {project.prompt}
                 </p>
                 
-                <div className="pt-4 mt-4 border-t border-[#30363d] flex items-center text-xs text-[#8b949e] font-medium">
+                <div className="pt-4 mt-4 flex items-center text-xs text-[#8b949e] font-medium">
                   <Calendar className="w-3.5 h-3.5 mr-2 opacity-70" />
                   {new Date(project.createdAt).toLocaleDateString(undefined, {
                     year: 'numeric',

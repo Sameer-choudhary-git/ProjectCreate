@@ -36,7 +36,7 @@ export function ProgressBar({ isVisible, message }: ProgressBarProps) {
       </div>
       {message && (
         <div className="flex justify-center mt-4">
-            <div className="px-4 py-2 bg-[#161b22] border border-[#30363d] text-xs text-[#58a6ff] font-medium rounded-full shadow-lg backdrop-blur-sm animate-fade-in-down">
+            <div className="px-4 py-2 bg-[#161b22] text-xs text-[#58a6ff] font-medium rounded-full shadow-lg backdrop-blur-sm animate-fade-in-down">
             {message}
             </div>
         </div>

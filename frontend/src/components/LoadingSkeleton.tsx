@@ -2,7 +2,7 @@ export function LoadingSkeleton() {
   return (
     <div className="space-y-4 p-4">
       {/* Header skeleton */}
-      <div className="h-8 bg-[#21262d] rounded-lg w-3/4 animate-pulse border border-[#30363d]"></div>
+      <div className="h-8 bg-[#21262d] rounded-lg w-3/4 animate-pulse"></div>
 
       {/* Content skeletons */}
       <div className="space-y-3">
@@ -16,8 +16,8 @@ export function LoadingSkeleton() {
 
       {/* Footer skeleton */}
       <div className="flex gap-2 mt-6">
-        <div className="h-10 bg-[#21262d] rounded w-1/3 animate-pulse border border-[#30363d]"></div>
-        <div className="h-10 bg-[#21262d] rounded w-1/3 animate-pulse border border-[#30363d]"></div>
+        <div className="h-10 bg-[#21262d] rounded w-1/3 animate-pulse"></div>
+        <div className="h-10 bg-[#21262d] rounded w-1/3 animate-pulse"></div>
       </div>
     </div>
   );

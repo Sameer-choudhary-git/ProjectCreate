@@ -94,12 +94,12 @@ export function PreviewFrame({ webContainer, files }: PreviewFrameProps) {
   if (error) {
     return (
       <div className="h-full flex items-center justify-center bg-[#0d1117]">
-        <div className="text-center max-w-md p-6 bg-[#161b22] border border-[#30363d] rounded-xl">
-          <div className="w-12 h-12 bg-[#da3633]/10 text-[#f85149] rounded-full flex items-center justify-center mx-auto mb-4 border border-[#da3633]/20">
+        <div className="text-center max-w-md p-6 bg-[#161b22] rounded-xl">
+          <div className="w-12 h-12 bg-[#da3633]/10 text-[#f85149] rounded-full flex items-center justify-center mx-auto mb-4">
             <Terminal className="w-6 h-6" />
           </div>
           <p className="text-[#f85149] font-medium mb-2">Preview Error</p>
-          <p className="text-[#8b949e] text-sm font-mono bg-[#0d1117] p-3 rounded-lg border border-[#30363d] break-all">
+          <p className="text-[#8b949e] text-sm font-mono bg-[#0d1117] p-3 rounded-lg break-all">
             {error}
           </p>
         </div>
@@ -112,10 +112,10 @@ export function PreviewFrame({ webContainer, files }: PreviewFrameProps) {
     <div className="h-full flex flex-col bg-[#ffffff]"> {/* White background for the actual preview content usually looks better, or keep dark if you prefer */}
       
       {/* Address Bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-[#30363d]">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#161b22]">
         <div className="flex items-center gap-2 text-sm text-[#8b949e] flex-1 mr-4">
           <div className="w-2.5 h-2.5 bg-[#238636] rounded-full animate-pulse shadow-[0_0_8px_rgba(35,134,54,0.4)]" />
-          <div className="bg-[#0d1117] px-3 py-1.5 rounded-md border border-[#30363d] flex-1 font-mono text-xs text-[#c9d1d9] truncate">
+          <div className="bg-[#0d1117] px-3 py-1.5 rounded-md flex-1 font-mono text-xs text-[#c9d1d9] truncate">
             {url}
           </div>
         </div>
@@ -123,14 +123,14 @@ export function PreviewFrame({ webContainer, files }: PreviewFrameProps) {
         <div className="flex gap-2">
           <button
             onClick={handleRefresh}
-            className="p-1.5 hover:bg-[#21262d] text-[#c9d1d9] rounded-md transition-colors border border-transparent hover:border-[#30363d]"
+            className="p-1.5 hover:bg-[#21262d] text-[#c9d1d9] rounded-md transition-colors"
             title="Refresh preview"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
             onClick={handleOpenExternal}
-            className="p-1.5 hover:bg-[#21262d] text-[#c9d1d9] rounded-md transition-colors border border-transparent hover:border-[#30363d]"
+            className="p-1.5 hover:bg-[#21262d] text-[#c9d1d9] rounded-md transition-colors"
             title="Open in new tab"
           >
             <ExternalLink className="w-4 h-4" />
@@ -145,7 +145,7 @@ export function PreviewFrame({ webContainer, files }: PreviewFrameProps) {
         <iframe
           ref={iframeRef}
           src={url}
-          className="w-full h-full border-0"
+          className="w-full h-full"
           title="Preview"
           sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
         />

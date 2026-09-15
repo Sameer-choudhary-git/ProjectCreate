@@ -39,10 +39,10 @@ export function LoadingModal({ stage, progress }: LoadingModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#161b22] border border-[#30363d] rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+      <div className="bg-[#161b22] rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
         {/* Icon */}
         <div className="flex justify-center mb-6">
-          <div className="relative w-20 h-20 bg-[#1f6feb]/10 rounded-full flex items-center justify-center border border-[#1f6feb]/20">
+          <div className="relative w-20 h-20 bg-[#1f6feb]/10 rounded-full flex items-center justify-center">
             <Icon
               className={`w-10 h-10 text-[#58a6ff] ${
                 stage !== "complete" ? "animate-spin" : ""
@@ -77,8 +77,8 @@ export function LoadingModal({ stage, progress }: LoadingModalProps) {
             <div
               key={stageKey}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors border ${
-                 stage === stageKey 
-                 ? "bg-[#1f6feb]/10 border-[#1f6feb]/20" 
+                 stage === stageKey
+                 ? "bg-[#1f6feb]/10"
                  : "border-transparent"
               }`}
             >

@@ -57,7 +57,7 @@ export function FileExplorer({ files, onFileSelect }: FileExplorerProps) {
         </div>
         
         {node.type === 'folder' && isExpanded && node.children && (
-          <div className="ml-3 border-l border-[#30363d] pl-1">
+          <div className="ml-3 pl-1">
             {node.children.map((child) => renderNode(child))}
           </div>
         )}
