@@ -49,15 +49,7 @@ export function ProjectInput({ onGenerate, prompt = "" }: ProjectInputProps) {
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] relative overflow-hidden bg-[#0d1117] flex items-center justify-center p-4 sm:p-8">
-      
-      {/* Background Decoration: Dark Grid */}
-      <div className="absolute inset-0 z-0 opacity-[0.2]" 
-           style={{ 
-             backgroundImage: 'radial-gradient(#30363d 1px, transparent 1px)', 
-             backgroundSize: '32px 32px' 
-           }}>
-      </div>
-      
+
       {/* Background Glows */}
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#1f6feb]/10 rounded-full blur-[100px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-[#238636]/10 rounded-full blur-[100px]" />
@@ -140,8 +132,6 @@ export function ProjectInput({ onGenerate, prompt = "" }: ProjectInputProps) {
                   onClick={() => setInput(project.prompt)}
                   className="group relative flex flex-col items-start text-left bg-[#161b22] p-6 rounded-2xl border border-[#30363d] shadow-sm hover:shadow-xl hover:border-[#58a6ff]/50 transition-all duration-300 hover:-translate-y-1"
                 >
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#58a6ff] to-[#bc8cff] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 rounded-t-2xl" />
-                  
                   <div className="p-3 bg-[#0d1117] rounded-xl mb-4 border border-[#30363d] group-hover:border-[#58a6ff]/30 group-hover:text-[#58a6ff] transition-colors">
                     <Icon className="w-6 h-6 text-[#8b949e] group-hover:text-[#58a6ff]" />
                   </div>
